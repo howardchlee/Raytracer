@@ -1,0 +1,34 @@
+# ignore lines that start with a # and blank lines
+camera
+origin 0 0 0
+direction 0 0 1
+up 0 1 0
+z 0 10
+width 10
+perspective 0
+end
+   
+light
+origin 0 10 0
+color 1 1 1
+end
+
+sphere
+origin 0 0 5
+radius 2
+color 1 0 0
+reflect 0
+transparency 0
+end
+
+# planes can optionally have a texture which shold be mapped onto the surface
+# instead of the color (commented out below)
+plane
+origin 0 0 10
+normal 0 0 -1
+up 0 1 0
+size 10 10
+color 0 1 0
+reflect 0
+transparency 0
+end

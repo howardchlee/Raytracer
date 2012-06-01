@@ -1,0 +1,56 @@
+# ignore lines that start with a # and blank lines
+camera
+origin 0 0 0
+direction 0 0 1
+up 0 1 0
+z 0 10
+width 10
+perspective 0
+end
+
+camera
+origin 0 0 0
+direction 0 0 1
+up 0 1 0
+z 1 10
+width 2
+perspective 1
+end
+   
+light
+origin -2 2 0
+color 1 1 0
+end
+
+light
+origin -2 2 7
+color 0 1 1
+end
+
+sphere
+origin 3 3 5
+radius 2
+color 1 1 1
+reflect 0
+transparency 0
+end
+
+plane
+origin 0 0 9
+normal 0 0 -1
+up 0 1 0
+size 10 10
+color 1 0 0
+reflect 0.99
+transparency 0
+end
+
+plane
+origin 0 0 -9
+normal 0 0 1
+up 0 1 0
+size 10 10
+color 0 1 0
+reflect 0.99
+transparency 0
+end
