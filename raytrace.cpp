@@ -52,6 +52,8 @@ typedef struct _Light {
     Color color;
 } Light;
 
+#include "rcdebug.h"
+
 // Static scene definition
 Light light   = {{0,10,0}, {1,1,1}};
 Camera camera = {{0,0,0},  {0,0,1}, {0,1,0}, 0, 10, 10, false};
@@ -120,61 +122,6 @@ float getNum(const string& s, int which)
 	return retval;
 	
 }
-
-void printCam(Camera* c)
-{
-	printf("=======================\n");
-	printf("Type: Camera\n");
-	printf("Origin: %f %f %f\n", c->origin.x, c->origin.y, c->origin.z);
-	printf("Direction: %f %f %f\n", c->direction.x, c->direction.y, c->direction.z);
-	printf("Up: %f %f %f\n", c->up.x, c->up.y, c->up.z);
-	printf("Z: %f %f\n", c->zmin, c->zmax);
-	printf("Width: %f\n", c->width);
-	printf("Perspective: %d\n", c->perspective);
-	printf("=======================\n\n");
-
-}
-
-void printLight(Light *l)
-{
-	printf("=====================\n");
-	printf("Type: Light\n");
-	printf("Origin: %f %f %f\n", l->origin.x, l->origin.y, l->origin.z);
-	printf("Color: %f %f %f\n", l->color.r, l->color.g, l->color.b);
-	printf("=====================\n\n");
-}
-
-void printSphere(Sphere *s)
-{
-	printf("=========================\n");
-	printf("Type: Sphere\n");
-	printf("Origin: %f %f %f\n", s->center.x, s->center.y, s->center.z);
-	printf("Radius: %f\n", s->radius);
-	printf("Material:\n");
-	printf("  Color: %f %f %f\n", s->material.color.r, s->material.color.g, s->material.color.b);
-	printf("  Reflection: %f\n", s->material.reflection);
-	printf("  Transparency: %f\n", s->material.transparency);
-	printf("==========================\n\n");
-}
-
-void printPlane(Plane *p)
-{
-	printf("=======================\n");
-	printf("Type: Plane\n");
-	printf("Center: %f %f %f\n", p->center.x, p->center.y, p->center.z);
-	printf("Normal: %f %f %f\n", p->normal.x, p->normal.y, p->normal.z);
-	printf("Size: %f x %f\n", p->width, p->height);
-	printf("Material:\n");
-	printf("  Color: %f %f %f\n", p->material.color.r, p->material.color.g, p->material.color.b);
-	printf("  Reflection: %f\n", p->material.reflection);
-	printf("  Transparency: %f\n", p->material. transparency);
-	if(p->hastexture)
-		printf("Has Texture: \n");
-	else
-		printf("No Texture.\n");
-	printf("========================\n\n");
-}
-
 
 int main(int argc, char * argv[])
 {
@@ -355,10 +302,34 @@ int main(int argc, char * argv[])
             		image(x,y)->Alpha = 0;
         	}
 
-    	image.WriteToFile("output.bmp");
+	// output the file
+	int cameraNum = 0;
+	string camNumInString = "-0";
+	camNumInString[1] = cameraNum+'0';
+	string outputFilename = "";
+	
+	// find the last '/' within the filename
+	size_t lastSlash = -1;
+	for(size_t i = 0; filename[i] != '\0'; i++)
+	{
+		if(filename[i] == '/') lastSlash = i;
+	}
 
-    	BMP texture;
-    	texture.ReadFromFile("output.bmp");
+	//extract the part before the .txt
+	for(size_t i = lastSlash+1; ; i++)
+	{
+		if(filename[i] == '.') break;
+		if(filename[i] == '\0') break;
+		outputFilename = outputFilename + filename[i];
+	}
+
+	outputFilename = outputFilename + camNumInString;
+
+	cout << "Output filename is " << outputFilename << endl;
+    	image.WriteToFile(outputFilename.c_str());
+
+	//BMP texture;
+    	//texture.ReadFromFile("output.bmp");
 
 	// freeing dynamically allocated objects
 	for(int i = 0; i < m_cameras.size(); i++)
