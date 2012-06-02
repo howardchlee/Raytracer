@@ -96,15 +96,58 @@ float getNum(const string& s, int which)
 
 void printCam(Camera* c)
 {
+	printf("=======================\n");
 	printf("Type: Camera\n");
 	printf("Origin: %f %f %f\n", c->origin.x, c->origin.y, c->origin.z);
 	printf("Direction: %f %f %f\n", c->direction.x, c->direction.y, c->direction.z);
 	printf("Up: %f %f %f\n", c->up.x, c->up.y, c->up.z);
 	printf("Z: %f %f\n", c->zmin, c->zmax);
 	printf("Width: %f\n", c->width);
-	printf("Perspectiive: %d\n", c->perspective);
+	printf("Perspective: %d\n", c->perspective);
+	printf("=======================\n\n");
 
 }
+
+void printLight(Light *l)
+{
+	printf("=====================\n");
+	printf("Type: Light\n");
+	printf("Origin: %f %f %f\n", l->origin.x, l->origin.y, l->origin.z);
+	printf("Color: %f %f %f\n", l->color.r, l->color.g, l->color.b);
+	printf("=====================\n\n");
+}
+
+void printSphere(Sphere *s)
+{
+	printf("=========================\n");
+	printf("Type: Sphere\n");
+	printf("Origin: %f %f %f\n", s->center.x, s->center.y, s->center.z);
+	printf("Radius: %f\n", s->radius);
+	printf("Material:\n");
+	printf("  Color: %f %f %f\n", s->material.color.r, s->material.color.g, s->material.color.b);
+	printf("  Reflection: %f\n", s->material.reflection);
+	printf("  Transparency: %f\n", s->material.transparency);
+	printf("==========================\n\n");
+}
+
+void printPlane(Plane *p)
+{
+	printf("=======================\n");
+	printf("Type: Plane\n");
+	printf("Center: %f %f %f\n", p->center.x, p->center.y, p->center.z);
+	printf("Normal: %f %f %f\n", p->normal.x, p->normal.y, p->normal.z);
+	printf("Size: %f x %f\n", p->width, p->height);
+	printf("Material:\n");
+	printf("  Color: %f %f %f\n", p->material.color.r, p->material.color.g, p->material.color.b);
+	printf("  Reflection: %f\n", p->material.reflection);
+	printf("  Transparency: %f\n", p->material. transparency);
+	if(p->hastexture)
+		printf("Has Texture: \n");
+	else
+		printf("No Texture.\n");
+	printf("========================\n\n");
+}
+
 
 int main(int argc, char * argv[])
 {
@@ -117,7 +160,10 @@ int main(int argc, char * argv[])
 	char *filename = argv[1];
 
 	vector<Camera*> m_cameras;
-    
+	vector<Light*> m_lights;
+	vector<Sphere*> m_spheres;
+	vector<Plane*> m_planes;    
+
 	//parse the specification file.
 	string line;
 	ifstream fd(filename);
@@ -128,7 +174,7 @@ int main(int argc, char * argv[])
 			getline(fd, line);
 			if(line == "camera")
 			{
-				Camera* newCam = new Camera();		
+				Camera *newCam = new Camera();		
 				//origin
 				getline(fd,line);
 				newCam->origin.x = getNum(line, 0);
@@ -155,9 +201,116 @@ int main(int argc, char * argv[])
 				getline(fd,line);
 				newCam->perspective = (bool)getNum(line, 0);
 				//end
-
+				getline(fd, line);
+				if(line != "end") 
+					printf("I think something is wrong\n");
 				printCam(newCam);
 				m_cameras.push_back(newCam);
+			}
+			else if(line == "light")
+			{
+				Light *newLight = new Light();
+				//origin
+				getline(fd, line);
+				newLight->origin.x = getNum(line, 0);
+				newLight->origin.y = getNum(line, 1);
+				newLight->origin.z = getNum(line, 2);
+				//color
+				getline(fd, line);
+				newLight->color.r = 1;
+				newLight->color.g = 1;
+				newLight->color.b = 1;
+				//end
+				getline(fd,line);
+				if(line != "end")
+					printf("Maybe something is wrong\n");
+				printLight(newLight);
+				m_lights.push_back(newLight);
+			}
+			else if(line == "sphere")
+			{
+				Sphere *newSphere = new Sphere();
+				//origin
+				getline(fd, line);
+				newSphere->center.x = getNum(line, 0);
+				newSphere->center.y = getNum(line, 1);
+				newSphere->center.z = getNum(line, 2);
+				//radius
+				getline(fd, line);
+				newSphere->radius = getNum(line, 0);
+				//color
+				getline(fd,line);
+				newSphere->material.color.r = getNum(line, 0);
+				newSphere->material.color.g = getNum(line, 1);
+				newSphere->material.color.b = getNum(line, 2);
+				//reflect
+				getline(fd,line);
+				newSphere->material.reflection = getNum(line, 0);
+				//transperency	
+				getline(fd, line);
+				newSphere->material.transparency = getNum(line, 0);
+				//end
+				getline(fd, line);
+				if(line != "end")
+					printf("Hmm. Is something wrong?\n");
+			
+				printSphere(newSphere);
+				m_spheres.push_back(newSphere);
+			}
+			else if(line == "plane")
+			{
+				Plane *newPlane = new Plane();
+				//origin
+				getline(fd, line);
+				newPlane->center.x = getNum(line, 0);
+				newPlane->center.y = getNum(line, 1);
+				newPlane->center.z = getNum(line, 2);
+				//normal
+				getline(fd, line);
+				newPlane->normal.x = getNum(line, 0);
+				newPlane->normal.y = getNum(line, 1);
+				newPlane->normal.z = getNum(line, 2);
+				//up
+				getline(fd, line);
+				newPlane->up.x = getNum(line, 0);
+				newPlane->up.y = getNum(line, 1);
+				newPlane->up.z = getNum(line, 2);
+				//size
+				getline(fd, line);
+				newPlane->width = getNum(line, 0);
+				newPlane->height = getNum(line, 1);
+				//color
+				getline(fd, line);
+				newPlane->material.color.r = getNum(line, 0);
+				newPlane->material.color.g = getNum(line, 1);
+				newPlane->material.color.b = getNum(line, 2);
+				//reflect
+				getline(fd, line);
+				newPlane->material.reflection = getNum(line, 0);
+				//transparency
+				getline(fd, line);
+				newPlane->material.transparency = getNum(line, 0);
+				//texture (optional)
+				getline(fd, line);
+				if(line != "end")
+				{
+					//TODO: check if it's a texture
+					//texture
+					newPlane->hastexture = true;
+					//TODO: set the texture	
+					
+					getline(fd, line);
+					if(line != "end")
+						printf("HMMMMM\n");
+				}
+				else
+				{
+					newPlane->hastexture = false;
+				}
+				//end	
+				printPlane(newPlane);
+			
+				m_planes.push_back(newPlane);	
 			}
 		}
 		fd.close();
@@ -180,9 +333,26 @@ int main(int argc, char * argv[])
     	BMP texture;
     	texture.ReadFromFile("output.bmp");
 
+	// freeing dynamically allocated objects
 	for(int i = 0; i < m_cameras.size(); i++)
 	{
+		printf("Deleting a camera\n");
 		delete m_cameras[i];
+	}
+	for(int i = 0; i < m_lights.size(); i++)
+	{
+		printf("Deleting a light\n");
+		delete m_lights[i];
+	}
+	for(int i = 0; i < m_spheres.size(); i++)
+	{
+		printf("Deleting a sphere\n");
+		delete m_spheres[i];
+	}
+	for(int i = 0; i < m_planes.size(); i++)
+	{
+		printf("Deleting a plane\n");
+		delete m_planes[i];
 	}
     	return 0;
 }
