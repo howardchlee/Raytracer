@@ -66,6 +66,8 @@ float getNum(const string& s, int which)
 {
 	int i=0, j=0;
 	bool copy = false;
+	bool isFloat = false;
+	int floatingPoint = -1;
 	int val;
 	string substr="";
 	for( ; i < s.size(); i++)
@@ -85,13 +87,38 @@ float getNum(const string& s, int which)
 		}
 		else if(copy)
 		{
+			if(s[i] == '.')	
+			{
+				isFloat = true;
+				floatingPoint = substr.size();
+			}
 			substr = substr + s[i];
 		}
 	}
+
+	//an integer is given, just use stringstream to convert to int
 	stringstream ss;
 	ss << substr;
 	ss >> val;
-	return (float) val;
+	if(!isFloat)
+		return (float) val;
+
+	//is a floating point number
+	
+	//extract the "floating part"
+	float retval = 0;
+	int k = substr.size()-1;
+	while(substr[k] != '.')
+	{
+		retval += substr[k] - '0';
+		retval = retval / 10.;
+		k--;
+	}
+
+	//return the whole number
+	retval = retval + (float) val;
+	return retval;
+	
 }
 
 void printCam(Camera* c)
