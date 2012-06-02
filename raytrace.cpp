@@ -146,6 +146,7 @@ int main(int argc, char * argv[])
 		while(fd.good())
 		{	
 			getline(fd, line);
+			if(line[0] = '#') continue; //ignore comments
 			if(line == "camera")
 			{
 				Camera *newCam = new Camera();		
@@ -266,7 +267,7 @@ int main(int argc, char * argv[])
 				newPlane->material.transparency = getNum(line, 0);
 				//texture (optional)
 				getline(fd, line);
-				if(line != "end")
+				if(line != "end" || line[0] != '#')  //transparencycould be commented out
 				{
 					//TODO: check if it's a texture
 					//texture
