@@ -408,10 +408,96 @@ float intersectSphereAt(Ray *r, Sphere *s)
 	return (dist1 < dist2)? dist1:dist2;
 }
 
-/*float intersectPlaneAt(Ray r, Plane p)
+// checks if a point is on a plane
+bool isOnPlane(Point p, Plane *plane)
 {
+	bool facingX = plane->normal.x;
+	bool facingY = plane->normal.y;
+	bool facingZ = plane->normal.z;
+	bool upX = plane->up.x;
+	bool upY = plane->up.y;
+	bool upZ = plane->up.z;
+	if(facingX)
+	{
+		if(p.x != plane->center.x) return false;
+	}
+	else if(facingY)
+	{
+		if(p.y != plane->center.y) return false;
+	}
+	else if(facingZ)
+	{
+		if(p.z != plane->center.z) return false;
+	}
 
-}*/
+	if(facingX)
+	{
+		if(upY)
+			if( (abs(p.y-plane->center.y) <= plane->height) && (abs(p.z-plane->center.z) <= plane->width))
+				return true;
+		if(upZ)
+			if( (abs(p.z-plane->center.z) <= plane->height) && (abs(p.y-plane->center.y) <= plane->width))
+				return true;
+	}
+	else if(facingY)
+	{
+		if(upX)
+			if( (abs(p.x-plane->center.x) <= plane->height) && (abs(p.z-plane->center.z) <= plane->width))
+				return true;
+		if(upZ)
+			if( (abs(p.z-plane->center.z) <= plane->height) && (abs(p.x-plane->center.x) <= plane->width))
+				return true;
+	}
+	else if(facingZ)
+	{
+		if(upX)
+			if( (abs(p.x-plane->center.x) <= plane->height) && (abs(p.y-plane->center.y) <= plane->width))
+				return true;
+		if(upY)
+			if( (abs(p.y-plane->center.y) <= plane->height) && (abs(p.x-plane->center.x) <= plane->width))
+			{
+				cout << "Return TRUE\n";
+				return true;
+			}
+	}
+	return false;
+	
+}
+
+float intersectPlaneAt(Ray *r, Plane *p)
+{
+	// based on the scenes, they can only face an axis
+	bool facingX=true, facingY=true, facingZ=true;
+	if(p->normal.x == 0) facingX = false;
+	if(p->normal.y == 0) facingY = false;
+	if(p->normal.z == 0) facingZ = false;
+
+	//unit vector from origin to plane perpendicularly (-normal)
+	Vec3 u_vec = Mult(-1, p->normal);
+	float cosangle = Dot(r->direction, u_vec);
+
+	// now we look at the triangle with u_vec as the opposite side
+	// where the hypothenuse parallel to ray
+	float hyph = 1./cosangle;	
+	Vec3 hyphVector = Mult(hyph, r->direction);
+
+	// find the actual perpendicular distance
+	float pd;
+	if(facingX)
+		pd = abs(p->center.x - r->origin.x);		
+	else if(facingY)
+		pd = abs(p->center.y - r->origin.y);
+	else if(facingZ)
+		pd = abs(p->center.z - r->origin.z);
+	// then use that ratio to find the "hitting point" of the ray
+	// to the plane, to see if it actually hits the plane
+	Vec3 rayVector = Mult(pd, hyphVector);
+	Point hittingPoint = Add(r->origin, rayVector);
+	if(isOnPlane(hittingPoint, p))
+		return hyph * pd;		
+	else
+		return MY_NAN;
+}
 
 int main(int argc, char * argv[])
 {
@@ -468,6 +554,8 @@ int main(int argc, char * argv[])
 		float c_w = thisCam->width;
 		// based on aspect radio
 		float c_h = c_w * H / W;
+		float zmin = thisCam->zmin;
+		float zmax = thisCam->zmax;
 
 		
 		//draw the image
@@ -488,35 +576,65 @@ int main(int argc, char * argv[])
 					ray->origin = posOnScene;
 					//cout << posOnScene.x << " " << posOnScene.y << " " << posOnScene.z << endl;
 					ray->direction = c_dir;
-
+					
 					// find the closest object for each pixel
-					//  check all spheres
+					
+					// check all spheres
 					float closestSphere = MY_NAN;
 					size_t closestSphereIndex = 0;
 					for(size_t i = 0; i < m_spheres.size(); i++)
 					{
 						float dist = intersectSphereAt(ray, m_spheres[i]);
-						if(dist < closestSphere) 
+						//also have to make sure it's within the zmin zmax range
+						if(dist>=zmin && dist <= closestSphere && dist <= zmax) 
 						{
 							closestSphere = dist;
 							closestSphereIndex = i;
 						}
 					}
-					if(closestSphere != MY_NAN)
+
+					//check all planes
+					float closestPlane = MY_NAN;
+					size_t closestPlaneIndex = 0;
+					for(size_t i = 0; i < m_planes.size(); i++)
 					{
-						// change based on sphere
-						ebmpBYTE c_red = 255*m_spheres[closestSphereIndex]->material.color.r;
-						ebmpBYTE c_green = 255*m_spheres[closestSphereIndex]->material.color.g;
-						ebmpBYTE c_blue = 255*m_spheres[closestSphereIndex]->material.color.b;
+						float dist = intersectPlaneAt(ray, m_planes[i]);
+						if(dist>=zmin && dist <= closestPlane && dist <= zmax)
+						{
+							closestPlane = dist;
+							closestPlaneIndex = i;
+						}							
+					}
+			
+					float closestObject = (closestSphere < closestPlane)? closestSphere : closestPlane;
+					
+					if(closestObject != MY_NAN)
+					{
+						ebmpBYTE c_red;
+						ebmpBYTE c_green;
+						ebmpBYTE c_blue;
+						if(closestSphere < closestPlane)
+						{
+							// Color the pixel based on the nearest object
+							c_red = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.r;
+							c_green = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.g;
+							c_blue = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.b;
+						}
+						else
+						{
+							c_red = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.r;
+							c_green = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.g;
+							c_blue = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.b;
+						}
 						image(x,y)->Red = c_red;
 						image(x,y)->Green = c_green;
 						image(x,y)->Blue = c_blue;
-						image(x,y)->Alpha = 0;
+						image(x,y)->Alpha = 0;  //TODO
 					}
 					else
 					{
 						image(x,y)->Red = 0;
-						image(x,y)->Green = 255;
+						image(x,y)->Green = 0;
 						image(x,y)->Blue = 0;
 						image(x,y)->Alpha = 0;
 					}
@@ -529,7 +647,7 @@ int main(int argc, char * argv[])
 			for(int x=0; x<W; x++)
         			for(int y=0; y<H; y++)
         			{
-            				image(x,y)->Red   = 255;
+            				image(x,y)->Red   = 0;
             				image(x,y)->Green = 0;
             				image(x,y)->Blue  = 0;
             				image(x,y)->Alpha = 0;
