@@ -353,6 +353,7 @@ Vec3 Cross(Vec3 u, Vec3 v)
 	newVec.x = u.y*v.z-v.y*u.z;
 	newVec.y = v.x*u.z-u.x*v.z;
 	newVec.z = u.x*v.y-u.y*v.x;
+	return newVec;
 }
 
 // Given Vector u, returns ||u||^2
@@ -371,7 +372,7 @@ float intersectSphereAt(Ray *r, Sphere *s)
 	// as our hypothenuse.
 
 	Vec3 hyph;
-	hyph = Subtract(r->origin, s->center);
+	hyph = Subtract(s->center, r->origin);
 	
 	// Then we find the length of the other sides of the 
         // triange using dot products (since ||r->direction|| = 1)
@@ -387,7 +388,7 @@ float intersectSphereAt(Ray *r, Sphere *s)
 		//the ray doesn't hit the sphere
 		return MY_NAN;  
 	}
-	
+
 	//The ray could intersect with the sphere twice, and point C
 	//(the point that has the right angle) of the triangle
 	//should be the midpoint of the 2 intersecting points.
@@ -395,6 +396,7 @@ float intersectSphereAt(Ray *r, Sphere *s)
 	//drawing another smaller right angled triangle inside the 
 	//circle, with r as the hypothenuse and b as a side.
 	float d = sqrt(s->radius * s->radius - b_squared);
+	//cout << "c is " << sqrt(MagSquared(hyph)) << " and a is " << a << " and b_squared is " << b_squared << " and d is " << d << endl;
 	
 	//if d > a then the ray started inside the sphere.
 	if(d > a)
@@ -467,11 +469,11 @@ int main(int argc, char * argv[])
 		// based on aspect radio
 		float c_h = c_w * H / W;
 
-		printf("c_w is %f; c_h is %f\n", c_w, c_h);
 		
 		//draw the image
 		if(!thisCam->perspective)
 		{
+			cout << "Camera is orthogonal\n";
 			//orthogonal
 			for(int x = 0; x < W; x++)
 				for(int y = 0; y < H; y++)
@@ -484,6 +486,7 @@ int main(int argc, char * argv[])
 					// create a ray that starts from this pixel
 					Ray *ray = new Ray;
 					ray->origin = posOnScene;
+					//cout << posOnScene.x << " " << posOnScene.y << " " << posOnScene.z << endl;
 					ray->direction = c_dir;
 
 					// find the closest object for each pixel
@@ -523,7 +526,7 @@ int main(int argc, char * argv[])
 		// TODO:
 		// NOTE: this only supports up to 10 cameras.  Then the file
 		// name breaks down :(
-		string camNumInString = "-0";
+		string camNumInString = "-0.bmp";
 		camNumInString[1] = i+'0';
 		string output = outputFilename + camNumInString;
 		cout << "Output filename is " << output << endl;
