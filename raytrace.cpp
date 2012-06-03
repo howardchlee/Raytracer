@@ -433,32 +433,41 @@ bool isOnPlane(Point p, Plane *plane)
 	if(facingX)
 	{
 		if(upY)
-			if( (abs(p.y-plane->center.y) <= plane->height) && (abs(p.z-plane->center.z) <= plane->width))
+		{
+			if( (abs(p.y-plane->center.y) <= plane->height/2) && (abs(p.z-plane->center.z) <= plane->width/2))
 				return true;
+		}
 		if(upZ)
-			if( (abs(p.z-plane->center.z) <= plane->height) && (abs(p.y-plane->center.y) <= plane->width))
+		{
+			if( (abs(p.z-plane->center.z) <= plane->height/2) && (abs(p.y-plane->center.y) <= plane->width/2))
 				return true;
+		}
 	}
 	else if(facingY)
 	{
 		if(upX)
-			if( (abs(p.x-plane->center.x) <= plane->height) && (abs(p.z-plane->center.z) <= plane->width))
+		{
+			if( (abs(p.x-plane->center.x) <= plane->height/2) && (abs(p.z-plane->center.z) <= plane->width/2))
 				return true;
+		}
 		if(upZ)
-			if( (abs(p.z-plane->center.z) <= plane->height) && (abs(p.x-plane->center.x) <= plane->width))
+		{	
+			if( (abs(p.z-plane->center.z) <= plane->height/2) && (abs(p.x-plane->center.x) <= plane->width/2))
 				return true;
+		}
 	}
 	else if(facingZ)
 	{
 		if(upX)
-			if( (abs(p.x-plane->center.x) <= plane->height) && (abs(p.y-plane->center.y) <= plane->width))
+		{
+			if( (abs(p.x-plane->center.x) <= plane->height/2) && (abs(p.y-plane->center.y) <= plane->width/2))
 				return true;
+		}
 		if(upY)
-			if( (abs(p.y-plane->center.y) <= plane->height) && (abs(p.x-plane->center.x) <= plane->width))
-			{
-				cout << "Return TRUE\n";
+		{
+			if( (abs(p.y-plane->center.y) <= plane->height/2) && (abs(p.x-plane->center.x) <= plane->width/2))
 				return true;
-			}
+		}
 	}
 	return false;
 	
@@ -475,7 +484,7 @@ float intersectPlaneAt(Ray *r, Plane *p)
 	//unit vector from origin to plane perpendicularly (-normal)
 	Vec3 u_vec = Mult(-1, p->normal);
 	float cosangle = Dot(r->direction, u_vec);
-
+	if(cosangle <= 0) return MY_NAN;
 	// now we look at the triangle with u_vec as the opposite side
 	// where the hypothenuse parallel to ray
 	float hyph = 1./cosangle;	
@@ -497,6 +506,73 @@ float intersectPlaneAt(Ray *r, Plane *p)
 		return hyph * pd;		
 	else
 		return MY_NAN;
+}
+
+Color illuminate(Point p, Ray *reflected, vector<Light*> m_lights, vector<Sphere*> m_spheres, vector<Plane*> m_planes, size_t thisSphereIndex, size_t thisPlaneIndex)
+{
+	//Since I am not sure how to do this, I will just do this by calculating
+	//how "close" the reflected ray is compared to the vector from the point
+	//to the light source.  This way, if the reflected ray IS directed to the
+	//light source then color = the light source of the color.  So here it makes
+	//sense to dot the 2 rays and use the angle 
+
+	//for each light source in the scene, we find a unit vector from the point
+	//directed to the light
+	Color retCol;
+	retCol.r = 0;
+	retCol.g = 0;
+	retCol.b = 0;
+	for(size_t i = 0; i < m_lights.size(); i++)
+	{
+		Light *l = m_lights[i];
+		Vec3 vectorToLight = Subtract(l->origin, p);
+		float magnitude = sqrt(MagSquared(vectorToLight));
+		vectorToLight = Mult(1/magnitude, vectorToLight); // unit vector = vector/mag
+		
+		bool illuminated = true;
+		// now we check if the point is illuminated at all (if any object
+		// if blockng the way)
+		Ray *ray = new Ray();
+		ray->origin = p;
+		ray->direction = vectorToLight;
+		for(size_t j = 0; j < m_spheres.size(); j++)
+		{
+			if(intersectSphereAt(ray, m_spheres[j]) != MY_NAN)
+			{
+				if(j == thisSphereIndex) continue;
+				cout << "BLOCKED by Sphere #" << j << endl;
+				printf("ray: %f %f %f -> %f %f %f\n", ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);
+				illuminated = false;
+				break;
+			}
+		}
+		for(size_t j = 0; j < m_planes.size(); j++)
+		{
+			if(intersectPlaneAt(ray, m_planes[j]) != MY_NAN)
+			{
+				if(j == thisPlaneIndex) continue;
+				cout << "BLOCKED by Plane #" << j << endl;
+				illuminated = false;
+				break;
+			}
+		}
+		delete ray;
+
+		if(!illuminated)
+		{
+			continue;
+		}
+
+		// this point is illuminated.
+		// calculate how close the reflected ray is to the lightsource
+		float cosAngle = Dot(vectorToLight, reflected->direction);
+		cosAngle = (cosAngle+1)/2;
+		retCol.r += l->color.r * cosAngle;
+		retCol.g += l->color.g * cosAngle;
+		retCol.b += l->color.b * cosAngle;
+		printf("VecToLight: %f %f %f; Reflected %f %f %f; retColor: %f %f %f\n\n", p.x, p.y, p.z, vectorToLight.x, vectorToLight.y, vectorToLight.z, retCol.r, retCol.g, retCol.b);
+	}
+	return retCol;
 }
 
 int main(int argc, char * argv[])
@@ -569,7 +645,7 @@ int main(int argc, char * argv[])
 					//the coordinate this pixel is representing
 					//within the scene
 					float a1 = (-(c_w)/2) + ((c_w)*((float)x/W));
-					float a2 = (-(c_h)/2) + ((c_h)*((float)y/H));
+					float a2 = ((c_h)/2) - ((c_h)*((float)y/H));
 					Vec3 posOnScene = Add( Add(c_org, Mult(a1, c_left)), Mult(a2, c_up));
 					// create a ray that starts from this pixel
 					Ray *ray = new Ray;
@@ -613,18 +689,85 @@ int main(int argc, char * argv[])
 						ebmpBYTE c_red;
 						ebmpBYTE c_green;
 						ebmpBYTE c_blue;
+						//posOnScene.y =  -posOnScene.y;
+				
 						if(closestSphere < closestPlane)
 						{
+							// Calculate the illumination of that point
+							Point hittingPoint = Add(posOnScene, Mult(closestSphere, ray->direction));
+							Ray *reflected = new Ray();
+							reflected->origin = hittingPoint;
+							Vec3 normal = Subtract(hittingPoint, m_spheres[closestSphereIndex]->center);
+							//printf("HittingPoint: %f %f %f; PosOnScreen: %f %f %f \n", hittingPoint.x, hittingPoint.y, hittingPoint.z, posOnScene.x, posOnScene.y, posOnScene.z);
+							normal = Mult(1/(sqrt(MagSquared(normal))), normal);
+							Vec3 incident = Subtract(hittingPoint, posOnScene);
+							incident = Mult(1/(sqrt(MagSquared(incident))), incident);
+							reflected->direction = Add(Mult(2 *Dot(Mult(-1, incident), normal), normal), incident);
+							//printf("Normal: %f %f %f; Incident: %f %f %f; Reflected: %f %f %f\n", normal.x, normal.y, normal.z, incident.x, incident.y, incident.z, reflected->direction.x, reflected->direction.y, reflected->direction.z);
+							Color illColor = illuminate(hittingPoint, reflected, m_lights, m_spheres, m_planes, closestSphereIndex, MY_NAN);
+							delete reflected;
 							// Color the pixel based on the nearest object
-							c_red = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.r;
-							c_green = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.g;
-							c_blue = (ebmpBYTE) 255*m_spheres[closestSphereIndex]->material.color.b;
+							Color drawColor;
+							drawColor.r = m_spheres[closestSphereIndex]->material.color.r;
+							drawColor.g = m_spheres[closestSphereIndex]->material.color.g;
+							drawColor.b = m_spheres[closestSphereIndex]->material.color.b;
+							if(illColor.r == 0 && illColor.g == 0 && illColor.b == 0)
+							{
+								drawColor.r = 0;
+								drawColor.g = 0;
+								drawColor.b = 0;
+							}
+							else
+							{
+								drawColor.r += illColor.r;
+								drawColor.g += illColor.g;
+								drawColor.b +=  illColor.b;
+								if(drawColor.r > 1) drawColor.r = 1 ;
+								if(drawColor.g > 1) drawColor.g = 1;
+								if(drawColor.b > 1) drawColor.b = 1;
+							}
+							c_red = (ebmpBYTE) 255* drawColor.r;
+							c_green = (ebmpBYTE) 255 * drawColor.g;
+							c_blue = (ebmpBYTE) 255 * drawColor.b;
 						}
 						else
 						{
-							c_red = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.r;
-							c_green = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.g;
-							c_blue = (ebmpBYTE) 255*m_planes[closestPlaneIndex]->material.color.b;
+							// Calculate the illumination of that point
+							Point hittingPoint = Add(posOnScene, Mult(closestPlane, ray->direction));
+							Ray *reflected = new Ray();
+							reflected->origin = hittingPoint;
+							Vec3 normal = m_planes[closestPlaneIndex]->normal;
+							//printf("HittingPoint: %f %f %f; PosOnScreen: %f %f %f \n", hittingPoint.x, hittingPoint.y, hittingPoint.z, posOnScene.x, posOnScene.y, posOnScene.z);
+							normal = Mult(1/(sqrt(MagSquared(normal))), normal);
+							Vec3 incident = Subtract(hittingPoint, posOnScene);
+							incident = Mult(1/(sqrt(MagSquared(incident))), incident);
+							reflected->direction = Add(Mult(2 *Dot(Mult(-1, incident), normal), normal), incident);
+							//printf("Normal: %f %f %f; Incident: %f %f %f; Reflected: %f %f %f\n", normal.x, normal.y, normal.z, incident.x, incident.y, incident.z, reflected->direction.x, reflected->direction.y, reflected->direction.z);
+							Color illColor = illuminate(hittingPoint, reflected, m_lights, m_spheres, m_planes, MY_NAN, closestPlaneIndex);
+							delete reflected;
+							// Color the pixel based on the nearest object
+							Color drawColor;
+							drawColor.r = m_planes[closestPlaneIndex]->material.color.r;
+							drawColor.g = m_planes[closestPlaneIndex]->material.color.g;
+							drawColor.b = m_planes[closestPlaneIndex]->material.color.b;
+							if(illColor.r == 0 && illColor.g == 0 && illColor.b == 0)
+							{
+								drawColor.r = 0;
+								drawColor.g = 0;
+								drawColor.b = 0;
+							}
+							else
+							{
+								drawColor.r += illColor.r;
+								drawColor.g += illColor.g;
+								drawColor.b +=  illColor.b;
+								if(drawColor.r > 1) drawColor.r = 1 ;
+								if(drawColor.g > 1) drawColor.g = 1;
+								if(drawColor.b > 1) drawColor.b = 1;
+							}
+							c_red = (ebmpBYTE) 255* drawColor.r;
+							c_green = (ebmpBYTE) 255 * drawColor.g;
+							c_blue = (ebmpBYTE) 255 * drawColor.b;
 						}
 						image(x,y)->Red = c_red;
 						image(x,y)->Green = c_green;

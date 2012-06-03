@@ -61,4 +61,9 @@ void printPlane(_Plane *p)
         printf("========================\n\n");
 }
 
+void printColor(_Color c)
+{
+	printf("Color: %f %f %f\n", c.r, c.g, c.b);
+}
+
 
