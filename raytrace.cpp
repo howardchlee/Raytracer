@@ -67,7 +67,7 @@ Light light   = {{0,10,0}, {1,1,1}};
 Camera camera = {{0,0,0},  {0,0,1}, {0,1,0}, 0, 10, 10, false};
 Sphere sphere = {{0,0,5},  {{1,0,0}, 0, 0}, 2};
 
-#define MY_NAN -100000
+#define MY_NAN 100000
 
 #define W 320
 #define H 240
@@ -490,14 +490,27 @@ int main(int argc, char * argv[])
 					ray->direction = c_dir;
 
 					// find the closest object for each pixel
-					// TODO: check all spheres
-					float dist = intersectSphereAt(ray, m_spheres[0]);
-					if(dist != MY_NAN)
+					//  check all spheres
+					float closestSphere = MY_NAN;
+					size_t closestSphereIndex = 0;
+					for(size_t i = 0; i < m_spheres.size(); i++)
 					{
-						//TODO change based on sphere
-						image(x,y)->Red = 255;
-						image(x,y)->Green = 0;
-						image(x,y)->Blue = 0;
+						float dist = intersectSphereAt(ray, m_spheres[i]);
+						if(dist < closestSphere) 
+						{
+							closestSphere = dist;
+							closestSphereIndex = i;
+						}
+					}
+					if(closestSphere != MY_NAN)
+					{
+						// change based on sphere
+						ebmpBYTE c_red = 255*m_spheres[closestSphereIndex]->material.color.r;
+						ebmpBYTE c_green = 255*m_spheres[closestSphereIndex]->material.color.g;
+						ebmpBYTE c_blue = 255*m_spheres[closestSphereIndex]->material.color.b;
+						image(x,y)->Red = c_red;
+						image(x,y)->Green = c_green;
+						image(x,y)->Blue = c_blue;
 						image(x,y)->Alpha = 0;
 					}
 					else
@@ -507,6 +520,7 @@ int main(int argc, char * argv[])
 						image(x,y)->Blue = 0;
 						image(x,y)->Alpha = 0;
 					}
+					
 				}
 		}
 		else
