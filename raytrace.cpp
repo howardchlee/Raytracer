@@ -432,7 +432,9 @@ float intersectSphereAt(Ray *r, Sphere *s)
 	
 	//if d > a then the ray started inside the sphere.
 	if(d > a)
+	{
 		return MY_NAN;
+	}
 
 	float dist1 = a-d;
 	float dist2 = a+d;
@@ -535,6 +537,19 @@ float intersectPlaneAt(Ray *r, Plane *p)
 	// to the plane, to see if it actually hits the plane
 	Vec3 rayVector = Mult(pd, hyphVector);
 	Point hittingPoint = Add(r->origin, rayVector);
+	if(facingX)
+	{
+		if(hittingPoint.x - p->center.x < 0.0001) hittingPoint.x = p->center.x;
+	}
+	else if(facingY)
+	{
+		if(hittingPoint.y - p->center.y < 0.0001) hittingPoint.y = p->center.y;
+	}
+	else
+	{
+		if(hittingPoint.z - p->center.z < 0.0001) hittingPoint.z = p->center.z;
+	}
+
 	if(isOnPlane(hittingPoint, p))
 		return hyph * pd;		
 	else
@@ -570,7 +585,7 @@ Color illuminate(Point p, Ray *reflected, vector<Light*> m_lights, vector<Sphere
 		ray->direction = vectorToLight;
 		for(size_t j = 0; j < m_spheres.size(); j++)
 		{
-			if(intersectSphereAt(ray, m_spheres[j]) != MY_NAN)
+			if(intersectSphereAt(ray, m_spheres[j]) < magnitude)
 			{
 				if(j == thisSphereIndex) continue;
 				cout << "BLOCKED by Sphere #" << j << endl;
@@ -580,10 +595,10 @@ Color illuminate(Point p, Ray *reflected, vector<Light*> m_lights, vector<Sphere
 		}
 		for(size_t j = 0; j < m_planes.size(); j++)
 		{
-			if(intersectPlaneAt(ray, m_planes[j]) != MY_NAN)
+			if(intersectPlaneAt(ray, m_planes[j]) < magnitude)
 			{
 				if(j == thisPlaneIndex) continue;
-				cout << "BLOCKED by Plane #" << j << endl;
+				cout << "Light " << i << "BLOCKED by Plane #" << j << endl;
 				illuminated = false;
 				break;
 			}
@@ -611,8 +626,8 @@ Color illuminate(Point p, Ray *reflected, vector<Light*> m_lights, vector<Sphere
 
 Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector<Light*> m_lights, float zmin, float zmax, int steps)
 {
-	//if(steps == 1)
-	//	printf("Tracing step %d: ray origin: %f %f %f, direction: %f %f %f\n", steps, ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);	
+	if(steps == 0)
+		printf("Tracing step %d: ray origin: %f %f %f, direction: %f %f %f\n", steps, ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);	
 	if(steps >= MAXSTEPS)
 	{
 		Color retCol;
@@ -627,6 +642,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 	for(size_t i = 0; i < m_spheres.size(); i++)
 	{
 		float dist = intersectSphereAt(ray, m_spheres[i]);
+		printf("dist: %f, zmin: %f, zmax: %f, closestSphere: %f\n", dist, zmin, zmax, closestSphere);
 		//also have to make sure it's within the zmin zmax range
 		if(dist>zmin && dist <= closestSphere && dist <= zmax) 
 		{
@@ -812,7 +828,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				retCol.r = ((float)thispixel.Red)/255;
 				retCol.g = ((float)thispixel.Green)/255;
 				retCol.b = ((float)thispixel.Blue)/255;
-				//printf("retCol: %f %f %f\n", retCol.r, retCol.g, retCol.b);
+				printf("retCol: %f %f %f\n", retCol.r, retCol.g, retCol.b);
 				return retCol;
 				
 			}
@@ -938,7 +954,7 @@ int main(int argc, char * argv[])
 					//printf("pos: %f %f %f; ray.d: %f %f %f\n", ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);
 					float d = Dot(ray->direction, c_dir);	
 					float mymax = (zmax-zmin)/d;  //the end of the viewing volume
-					Color drawColor = trace(ray, m_spheres, m_planes, m_lights, zmin, mymax, 0);
+					Color drawColor = trace(ray, m_spheres, m_planes, m_lights, 0, mymax, 0);
 					delete ray;
 					printf("(%d, %d): %f %f %f\n", x, y, drawColor.r, drawColor.g, drawColor.b);
 					ebmpBYTE c_red = (ebmpBYTE) 255* drawColor.r;
