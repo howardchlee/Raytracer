@@ -62,7 +62,7 @@ typedef struct _Ray {
     Vec3 direction;   // Normalized direction of the ray.
 } Ray;
 
-#include "rtdebug.h"
+//#include "rtdebug.h"
 
 // Static scene definition
 Light light   = {{0,10,0}, {1,1,1}};
@@ -623,7 +623,7 @@ Color illuminate(Point p, Ray *normal, vector<Light*> m_lights, vector<Sphere*> 
 	if(retCol.r > 1) retCol.r = 1;
 	if(retCol.g > 1) retCol.g = 1;
 	if(retCol.b > 1) retCol.b = 1;
-	printf("for point (%f %f %f), illuminate = (%f %f %f)\n", p.x, p.y, p.z, retCol.r, retCol.g, retCol.b);
+	//printf("for point (%f %f %f), illuminate = (%f %f %f)\n", p.x, p.y, p.z, retCol.r, retCol.g, retCol.b);
 	return retCol;
 }
 
@@ -645,7 +645,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 	for(size_t i = 0; i < m_spheres.size(); i++)
 	{
 		float dist = intersectSphereAt(ray, m_spheres[i]);
-		printf("dist: %f, zmin: %f, zmax: %f, closestSphere: %f\n", dist, zmin, zmax, closestSphere);
+		//printf("dist: %f, zmin: %f, zmax: %f, closestSphere: %f\n", dist, zmin, zmax, closestSphere);
 		//also have to make sure it's within the zmin zmax range
 		if(dist>zmin && dist <= closestSphere && dist <= zmax) 
 		{
@@ -693,7 +693,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 			reflected->direction = Add(Mult(2 *Dot(Mult(-1, incident), normal), normal), incident);
 			Color illColor = illuminate(hittingPoint, normalRay, m_lights, m_spheres, m_planes, closestSphereIndex, MY_NAN);
 			
-			Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, zmax*2, steps+1);
+			Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, MY_NAN-11, steps+1);
 			reflectionRay.r = thisSphere->material.reflection * reflectionRay.r;
 			reflectionRay.g = thisSphere->material.reflection * reflectionRay.g;
 			reflectionRay.b = thisSphere->material.reflection * reflectionRay.b;
@@ -759,7 +759,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				reflected->direction = Add(Mult(2 *Dot(Mult(-1, incident), normal), normal), incident);
 				Color illColor = illuminate(hittingPoint, normalRay, m_lights, m_spheres, m_planes, MY_NAN, closestPlaneIndex);
 
-				Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, zmax*2, steps+1);
+				Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, MY_NAN-1, steps+1);
 				reflectionRay.r = thisPlane->material.reflection * reflectionRay.r;
 				reflectionRay.g = thisPlane->material.reflection * reflectionRay.g;
 				reflectionRay.b = thisPlane->material.reflection * reflectionRay.b;
@@ -772,8 +772,9 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				transRay.g = thisPlane->material.transparency * transRay.g;
 				transRay.b = thisPlane->material.transparency * transRay.b;
 
-				if(reflectionRay.r != 0)
+				/*if(reflectionRay.r != 0)
 					printf("Reflection Ray: %f %f %f\n", reflectionRay.r, reflectionRay.g, reflectionRay.b);
+				*/
 				delete trans;
 				delete reflected;
 				delete normalRay;
@@ -819,7 +820,7 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				reflected->direction = Add(Mult(2 *Dot(Mult(-1, incident), normal), normal), incident);
 				Color illColor = illuminate(hittingPoint, normalRay, m_lights, m_spheres, m_planes, MY_NAN, closestPlaneIndex);
 
-				Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, zmax, steps+1);
+				Color reflectionRay = trace(reflected, m_spheres, m_planes, m_lights, 0, MY_NAN-1, steps+1);
 				reflectionRay.r = thisPlane->material.reflection * reflectionRay.r;
 				reflectionRay.g = thisPlane->material.reflection * reflectionRay.g;
 				reflectionRay.b = thisPlane->material.reflection * reflectionRay.b;
