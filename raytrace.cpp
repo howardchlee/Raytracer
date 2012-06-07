@@ -135,9 +135,13 @@ float getNum(const string& s, int which)
 		retval = retval / 10.;
 		k--;
 	}
+	if(substr[0] == '-')
+	{
+		retval = -retval;
+	}
 
 	//return the whole number
-	retval = retval + (float) val;
+	retval = retval + val;
 	return retval;
 	
 }
