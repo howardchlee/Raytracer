@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define MAXSTEPS 3
+#define MAXSTEPS 5
 
 typedef struct _Point {
     float x,y,z;
@@ -209,9 +209,9 @@ int parseInput(vector<Camera*> &m_cameras, vector<Light*> &m_lights, vector<Sphe
 				newLight->origin.z = getNum(line, 2);
 				//color
 				getline(fd, line);
-				newLight->color.r = 1;
-				newLight->color.g = 1;
-				newLight->color.b = 1;
+				newLight->color.r = getNum(line, 0);
+				newLight->color.g = getNum(line, 1);
+				newLight->color.b = getNum(line, 2);
 				//end
 				getline(fd,line);
 				if(line != "end")
@@ -290,7 +290,6 @@ int parseInput(vector<Camera*> &m_cameras, vector<Light*> &m_lights, vector<Sphe
 				{
 					//texture
 					newPlane->hastexture = true;
-					//TODO: parse and set the texture
 					string textureName = "";
 					bool copy = false;
 					for(size_t i = 0; i < line.size(); i++)
@@ -302,23 +301,8 @@ int parseInput(vector<Camera*> &m_cameras, vector<Light*> &m_lights, vector<Sphe
 						if(line[i] == ' ')
 							copy = true;
 					}
-					cout << "texture is " << textureName << endl;	
 					newPlane->texture.ReadFromFile(textureName.c_str());
 
-					/*//PRINTTEXTURE
-					for(int i = 0; i < newPlane->texture.TellWidth();i++)
-					{
-						for(int j = 0; j < newPlane->texture.TellHeight(); j++)
-						{
-							RGBApixel thispixel = *newPlane->texture(i,j);
-							Color retCol;
-							retCol.r = ((float)thispixel.Red)/255;
-							retCol.g = ((float)thispixel.Green)/255;
-							retCol.b = ((float)thispixel.Blue)/255;
-							printf("(%d, %d): %f %f %f\n", i, j, retCol.r, retCol.g, retCol.b);
-						}
-					}*/
-					
 					getline(fd, line);
 					//end	
 					if(line != "end")
@@ -588,7 +572,7 @@ Color illuminate(Point p, Ray *normal, vector<Light*> m_lights, vector<Sphere*> 
 			if(intersectSphereAt(ray, m_spheres[j]) < magnitude)
 			{
 				if(j == thisSphereIndex) continue;
-				cout << "BLOCKED by Sphere #" << j << endl;
+				//cout << " Light " << i << " BLOCKED by Sphere #" << j << endl;
 				illuminated = false;
 				break;
 			}
@@ -598,7 +582,7 @@ Color illuminate(Point p, Ray *normal, vector<Light*> m_lights, vector<Sphere*> 
 			if(intersectPlaneAt(ray, m_planes[j]) < magnitude)
 			{
 				if(j == thisPlaneIndex) continue;
-				cout << "Light " << i << " BLOCKED by Plane #" << j << endl;
+				//cout << "Light " << i << " BLOCKED by Plane #" << j << endl;
 				illuminated = false;
 				break;
 			}
@@ -618,19 +602,15 @@ Color illuminate(Point p, Ray *normal, vector<Light*> m_lights, vector<Sphere*> 
 		retCol.r += l->color.r * cosAngle;
 		retCol.g += l->color.g * cosAngle;
 		retCol.b += l->color.b * cosAngle;
-		//printf("VecToLight: %f %f %f; Reflected %f %f %f; retColor: %f %f %f\n\n", p.x, p.y, p.z, vectorToLight.x, vectorToLight.y, vectorToLight.z, retCol.r, retCol.g, retCol.b);
 	}
 	if(retCol.r > 1) retCol.r = 1;
 	if(retCol.g > 1) retCol.g = 1;
 	if(retCol.b > 1) retCol.b = 1;
-	//printf("for point (%f %f %f), illuminate = (%f %f %f)\n", p.x, p.y, p.z, retCol.r, retCol.g, retCol.b);
 	return retCol;
 }
 
 Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector<Light*> m_lights, float zmin, float zmax, int steps)
 {
-	//if(steps == 0)
-	//	printf("Tracing step %d: ray origin: %f %f %f, direction: %f %f %f\n", steps, ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);	
 	if(steps >= MAXSTEPS)
 	{
 		Color retCol;
@@ -645,7 +625,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 	for(size_t i = 0; i < m_spheres.size(); i++)
 	{
 		float dist = intersectSphereAt(ray, m_spheres[i]);
-		//printf("dist: %f, zmin: %f, zmax: %f, closestSphere: %f\n", dist, zmin, zmax, closestSphere);
 		//also have to make sure it's within the zmin zmax range
 		if(dist>zmin && dist <= closestSphere && dist <= zmax) 
 		{
@@ -698,9 +677,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 			reflectionRay.g = thisSphere->material.reflection * reflectionRay.g;
 			reflectionRay.b = thisSphere->material.reflection * reflectionRay.b;
 
-			//printf("HittingPoint: %f %f %f; PosOnScreen: %f %f %f \n", hittingPoint.x, hittingPoint.y, hittingPoint.z, ray->origin.x, ray->origin.y, ray->origin.z);
-			//cout << "Reflection: " << thisSphere->material.reflection << " ; Transparency: " << thisSphere->material.transparency << endl;
-		
 			Ray * trans = new Ray();
 			trans->origin = hittingPoint;
 			trans->direction = incident;
@@ -709,8 +685,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 			transRay.r = thisSphere->material.transparency * transRay.r;
 			transRay.g = thisSphere->material.transparency * transRay.g;
 			transRay.b = thisSphere->material.transparency * transRay.b;
-			/*if(steps == 0)
-				printf("reflectionRay: %f %f %f transRay: %f %f %f\n", reflectionRay.r, reflectionRay.g, reflectionRay.b, transRay.r, transRay.g, transRay.b);*/
 
 			delete reflected;
 			delete normalRay;
@@ -772,9 +746,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				transRay.g = thisPlane->material.transparency * transRay.g;
 				transRay.b = thisPlane->material.transparency * transRay.b;
 
-				/*if(reflectionRay.r != 0)
-					printf("Reflection Ray: %f %f %f\n", reflectionRay.r, reflectionRay.g, reflectionRay.b);
-				*/
 				delete trans;
 				delete reflected;
 				delete normalRay;
@@ -833,8 +804,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				transRay.g = thisPlane->material.transparency * transRay.g;
 				transRay.b = thisPlane->material.transparency * transRay.b;
 
-				if(reflectionRay.r != 0)
-					printf("Reflection Ray: %f %f %f\n", reflectionRay.r, reflectionRay.g, reflectionRay.b);
 				delete trans;
 				delete reflected;
 				
@@ -849,7 +818,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				drawColor.r = ((float)thispixel.Red)/255 + transRay.r + reflectionRay.r;
 				drawColor.g = ((float)thispixel.Green)/255 + transRay.g + reflectionRay.g;
 				drawColor.b = ((float)thispixel.Blue)/255 + transRay.b + reflectionRay.b;
-				//printf("retCol: %f %f %f\n", retCol.r, retCol.g, retCol.b);
 				if(illColor.r == 0 && illColor.g == 0 && illColor.b == 0)
 				{
 					drawColor.r = 0;
@@ -858,7 +826,6 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 				}
 				else
 				{
-					printf("illColor: %f %f %f\n", illColor.r, illColor.g, illColor.b);
 					drawColor.r *= illColor.r;
 					drawColor.g *= illColor.g;
 					drawColor.b *=  illColor.b;
@@ -875,8 +842,8 @@ Color trace(Ray *ray, vector<Sphere*> m_spheres, vector<Plane*> m_planes, vector
 	}
 	else
 	{
-		if(steps == 0)
-			cout << "MY_NAN\n";
+		//if(steps == 0)
+		//	cout << "MY_NAN\n";
 		Color retCol = {0,0,0};
 		return retCol;
 	}
@@ -945,7 +912,7 @@ int main(int argc, char * argv[])
 		//draw the image
 		if(!thisCam->perspective)
 		{
-			cout << "Camera is orthogonal\n";
+			//cout << "Camera is orthogonal\n";
 			//orthogonal
 			for(int x = 0; x < W; x++)
 				for(int y = 0; y < H; y++)
@@ -990,12 +957,12 @@ int main(int argc, char * argv[])
 					ray->origin = posOnScene;
 					ray->direction = Subtract(posOnScene, c_org);
 					ray->direction = Normalize( ray->direction);
-					//printf("pos: %f %f %f; ray.d: %f %f %f\n", ray->origin.x, ray->origin.y, ray->origin.z, ray->direction.x, ray->direction.y, ray->direction.z);
+
 					float d = Dot(ray->direction, c_dir);	
 					float mymax = (zmax)/d;  //the end of the viewing volume
 					Color drawColor = trace(ray, m_spheres, m_planes, m_lights, 0, mymax, 0);
 					delete ray;
-					printf("(%d, %d): %f %f %f\n", x, y, drawColor.r, drawColor.g, drawColor.b);
+
 					ebmpBYTE c_red = (ebmpBYTE) 255* drawColor.r;
 					ebmpBYTE c_green = (ebmpBYTE) 255 * drawColor.g;
 					ebmpBYTE c_blue = (ebmpBYTE) 255 * drawColor.b;
@@ -1023,22 +990,22 @@ int main(int argc, char * argv[])
 	// freeing dynamically allocated objects
 	for(int i = 0; i < m_cameras.size(); i++)
 	{
-		printf("Deleting a camera\n");
+		//printf("Deleting a camera\n");
 		delete m_cameras[i];
 	}
 	for(int i = 0; i < m_lights.size(); i++)
 	{
-		printf("Deleting a light\n");
+		//printf("Deleting a light\n");
 		delete m_lights[i];
 	}
 	for(int i = 0; i < m_spheres.size(); i++)
 	{
-		printf("Deleting a sphere\n");
+		//printf("Deleting a sphere\n");
 		delete m_spheres[i];
 	}
 	for(int i = 0; i < m_planes.size(); i++)
 	{
-		printf("Deleting a plane\n");
+		//printf("Deleting a plane\n");
 		delete m_planes[i];
 	}
     	return 0;
